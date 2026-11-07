@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 RS-Key contributors
 
-//! Physical user presence over either the BOOTSEL button (default) or a dedicated
+//! Physical user presence over the BOOTSEL button and an optional dedicated
 //! GPIO button (`PRESENCE_PIN`). BOOTSEL samples use the QSPI-CS-to-Hi-Z trick in a
 //! RAM function; a GPIO button is polled active-low with an internal pull-up by
 //! default, or active-high with a pull-down when `PRESENCE_ACTIVE_HIGH` is set. The
@@ -96,7 +96,7 @@ pub fn set_timeout_secs(secs: u8) {
     ARBITER.set_timeout_secs(secs);
 }
 
-/// User presence via BOOTSEL (default) or a dedicated GPIO button.
+/// User presence via BOOTSEL and an optional dedicated GPIO button.
 #[cfg(not(feature = "display"))]
 pub struct ButtonPresence {
     #[cfg_attr(feature = "no-touch", allow(dead_code))]
@@ -105,13 +105,13 @@ pub struct ButtonPresence {
     latch: ButtonWait,
 }
 
-/// The presence source: the BOOTSEL hardware button, or a GPIO button (the bool is
+/// The presence source: the BOOTSEL hardware button, optionally with GPIO (the bool is
 /// `active_high` — `true` reads a press as logic high, `false` as logic low).
 #[cfg(not(feature = "display"))]
 #[cfg_attr(feature = "no-touch", allow(dead_code))]
 enum Button {
     Bootsel(Peri<'static, BOOTSEL>),
-    Gpio(Input<'static>, bool),
+    Gpio(Input<'static>, bool, Peri<'static, BOOTSEL>),
 }
 
 #[cfg(all(not(feature = "no-touch"), not(feature = "display")))]
@@ -119,12 +119,13 @@ impl Button {
     fn sample(&mut self) -> bool {
         match self {
             Button::Bootsel(bootsel) => is_bootsel_pressed(bootsel.reborrow()),
-            Button::Gpio(button, active_high) => {
-                if *active_high {
+            Button::Gpio(button, active_high, bootsel) => {
+                let gpio_pressed = if *active_high {
                     button.is_high()
                 } else {
                     button.is_low()
-                }
+                };
+                gpio_pressed || is_bootsel_pressed(bootsel.reborrow())
             }
         }
     }
@@ -156,7 +157,7 @@ impl Board for Button {
 
 /// The presence backend the [`crate::worker::Worker`] owns, selected at build
 /// time so the worker wiring stays backend-agnostic. The standard key confirms
-/// with the BOOTSEL button (or a `PRESENCE_PIN` GPIO); the `display` build swaps
+/// with BOOTSEL or, when configured, a `PRESENCE_PIN` GPIO; the `display` build swaps
 /// this alias to the `crate::display::TouchPresence` that renders on-screen
 /// Approve/Deny and returns a real `Declined`. Both satisfy the one
 /// `rsk_sdk::UserPresence` every applet asks through, so only this alias changes.
@@ -175,14 +176,14 @@ impl ButtonPresence {
         }
     }
 
-    /// Build a GPIO-backed presence source on `pin`. `active_high` picks the polarity:
+    /// Add a GPIO presence input on `pin`, retaining BOOTSEL. `active_high` picks the polarity:
     /// `false` = active-low (button to ground, internal pull-up, a press reads low);
     /// `true` = active-high (pull-down, a press reads high — e.g. a touch sensor).
     ///
     /// # Panics
     ///
     /// Panics if `pin` is out of the RP2350A range `0..=29`.
-    pub fn new_gpio(pin: u8, active_high: bool) -> Self {
+    pub fn new_gpio(pin: u8, active_high: bool, bootsel: Peri<'static, BOOTSEL>) -> Self {
         assert!(
             pin <= 29,
             "PRESENCE_PIN={pin} out of range 0..=29 (RP2350A GPIOs)"
@@ -192,7 +193,7 @@ impl ButtonPresence {
         let pull = if active_high { Pull::Down } else { Pull::Up };
         let input = Input::new(any, pull);
         Self {
-            button: Button::Gpio(input, active_high),
+            button: Button::Gpio(input, active_high, bootsel),
             latch: ButtonWait::new(),
         }
     }

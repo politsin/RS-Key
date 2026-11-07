@@ -338,6 +338,10 @@ security or anti-counterfeiting control (see docs/threat-model.md).
 YubiKey's reader name. Reference: `RSK_READER_TOKENS` in
 `tools/rsk/ccid.py`.
 
+The USB `iSerialNumber` string is the 64-bit RP2350 chip ID as 16 lowercase
+hexadecimal digits, most-significant byte first. It is stable across reboots and
+unique per chip. This is separate from the four-byte management serial in DeviceInfo.
+
 ### 3.2 Firmware version & `bcdDevice`
 
 | Field | Value | Where |

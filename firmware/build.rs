@@ -384,7 +384,7 @@ fn main() {
     );
     println!("cargo:rerun-if-env-changed=USR_LED_ACTIVE_HIGH");
 
-    // User-presence source: default BOOTSEL, or `PRESENCE_PIN=<gpio>` for an
+    // User-presence source: BOOTSEL plus `PRESENCE_PIN=<gpio>` for an optional
     // active-low GPIO button (internal pull-up). Encoded as two numeric envs so
     // `main` can parse them with the existing const decimal parser.
     let (presence_is_gpio, presence_pin) = resolve_presence_pin();

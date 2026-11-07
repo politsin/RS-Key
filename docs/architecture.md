@@ -200,11 +200,12 @@ YubiKey") for the tools that auto-recognize the device purely by that reader
 name. A flash-resident *phy* record can override VID/PID and the product
 string at boot (the store mounts before the USB builder runs for exactly this
 reason). FIDO tools find the device by HID usage page, CCID tools by the
-reader name.
+reader name. The USB serial string is the full chip ID in hexadecimal, so
+identical boards enumerate separately without sharing a placeholder identity.
 
 ## User presence
 
-One presence button (BOOTSEL by default, or `PRESENCE_PIN`), shared by all
+BOOTSEL plus an optional `PRESENCE_PIN` input, shared by all
 applets through `rsk_sdk::UserPresence`, which the firmware implements once:
 FIDO operations, OpenPGP UIF, PIV touch policies, OATH touch accounts, and OTP
 slot typing (1–4 presses select the slot) all gate on it. The trait has two

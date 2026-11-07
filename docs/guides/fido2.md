@@ -21,14 +21,13 @@ not the RS-Key release.
 ## Touch is always required
 
 On the default (touch) build **every** FIDO operation needs a press of the
-**BOOTSEL button**: both registration (makeCredential) and login
+**BOOTSEL button** (or the additional GPIO button when `PRESENCE_PIN` is set): both registration (makeCredential) and login
 (getAssertion). The firmware's user-presence bit is implicitly true and it does
 **not** honour a request to skip it. WebAuthn `userVerification`/`up` cannot turn
 the touch off, and OpenSSH's `-O no-touch-required` is silently ignored on this
 device. A "no-touch" SSH key still asks for the touch at login. The LED tells
 you when the device is waiting. See [led.md](led.md) for the colours. A request
-times out after no touch (the browser shows its own timeout UI). No button wired
-on a custom board means presence confirms instantly.
+times out after no touch (the browser shows its own timeout UI). When both inputs are available, release both before confirming another operation.
 
 ## Set a PIN first
 

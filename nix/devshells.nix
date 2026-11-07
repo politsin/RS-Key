@@ -21,6 +21,8 @@
       pkgs.probe-rs-tools # flash/debug over SWD (optional; needs a probe)
       pkgs.picotool # ELF -> UF2 + BOOTSEL flashing, no probe needed
       pkgs.pkg-config
+      pkgs.git
+      pkgs.rsync
       pkgs.gcc-arm-embedded
       # arm-none-eabi-gcc — builds rsk-rsa's C+ARM-asm
       # fast RSA modexp. `cc` auto-detects it.

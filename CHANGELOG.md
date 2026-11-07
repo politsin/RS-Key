@@ -38,6 +38,15 @@ tag: the USB `bcdDevice` build counter (bumped on every behavior change), and
 
 ## [Unreleased]
 
+- bcdDevice 0x09DB: allow BOOTSEL alongside GPIO and use per-chip USB serials.
+
+- Include Git and rsync in the development shell for clean Linux installations.
+- Derive the USB serial string from the RP2350 chip ID so two local keys do not
+  collide in Windows or authenticator applications.
+- Keep BOOTSEL available when `PRESENCE_PIN` selects an external button or touch
+  module. Either input confirms presence; both must be released before another
+  ceremony can consume a new touch.
+
 ## [0.4.11] - 2026-09-08
 
 The catch-up release, and the one where the instruments were audited harder than

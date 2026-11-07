@@ -710,11 +710,19 @@ async fn main(spawner: Spawner) {
     let mut config = UsbConfig::new(usb_vid, usb_pid);
     config.manufacturer = Some(usb_manufacturer);
     config.product = Some(usb_product);
-    config.serial_number = Some("rs-key-0001");
+    // Windows distinguishes identical USB models by this string.
+    static USB_SERIAL: StaticCell<[u8; 16]> = StaticCell::new();
+    let usb_serial = USB_SERIAL.init([0; 16]);
+    const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
+    for (i, byte) in serial_id.iter().rev().enumerate() {
+        usb_serial[2 * i] = HEX_DIGITS[(byte >> 4) as usize];
+        usb_serial[2 * i + 1] = HEX_DIGITS[(byte & 0x0f) as usize];
+    }
+    config.serial_number = Some(core::str::from_utf8(usb_serial).expect("ASCII chip ID"));
     config.max_power = 100;
     config.max_packet_size_0 = 64;
     // bcdDevice build counter; also surfaced on the trusted-display Firmware screen.
-    let device_release: u16 = 0x09DA;
+    let device_release: u16 = 0x09DB;
     config.device_release = device_release;
 
     let mut builder = Builder::new(
@@ -1146,13 +1154,13 @@ async fn main(spawner: Spawner) {
     };
     core1::spawn(p.CORE1);
 
-    // Standard key: BOOTSEL by default, or a dedicated `PRESENCE_PIN` GPIO button.
+    // Standard key: BOOTSEL plus an optional `PRESENCE_PIN` GPIO button.
     // Display build: the touchscreen is the presence source (a `PRESENCE_PIN` is
     // rejected at compile time — see the `BUILD_PRESENCE_IS_GPIO` assert above).
     #[cfg(not(feature = "display"))]
     let presence_ref = {
         let presence = if BUILD_PRESENCE_IS_GPIO {
-            ButtonPresence::new_gpio(BUILD_PRESENCE_PIN, BUILD_PRESENCE_ACTIVE_HIGH)
+            ButtonPresence::new_gpio(BUILD_PRESENCE_PIN, BUILD_PRESENCE_ACTIVE_HIGH, p.BOOTSEL)
         } else {
             ButtonPresence::new_bootsel(p.BOOTSEL)
         };
