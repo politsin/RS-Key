@@ -39,7 +39,33 @@ Verify enumeration through the installed Windows Authenticator backend:
 python tools/verify_windows_keys.py
 ```
 
-## Validation
+## Local RSA signing setup
+
+`tools/import_local_signing_key.py` imports the existing RSA-2048 key from
+`W:/politsin` into the two known devices' PIV digital-signature slot `9c`.
+It refuses to overwrite a populated slot or guess non-default PIV credentials.
+Run `--inspect` for a read-only preflight. The expected public fingerprint is
+`SHA256:KkRSEIn3uG8r9X8WTJWOVhhcu58N6f94TyNx+YrliTU`.
+
+Provisioning prompts in the local console for a new PIV PIN and recovery PUK,
+shared by these two devices and separate from their FIDO PINs. It replaces the
+factory management key with a random AES-256 key stored in the PIN-protected
+PIV management object, then imports the RSA key with PIN `ALWAYS` and touch
+`ALWAYS`. A self-signed certificate supplies the public key for PIV clients;
+it does not assert a trusted certificate identity. The final check signs a
+random challenge on each device and verifies it with the imported public key.
+
+The source private-key file is read directly into memory and kept unchanged.
+No private key, PIN, PUK or management key is written to the optional JSON result
+file. Existing FIDO credentials are not reset. To sign using this key, select
+PIV slot `9c` in a PIV/PKCS#11 client, supply the PIV PIN and confirm by touch.
+
+On 2026-11-08 both imports completed and both hardware challenge signatures
+verified. YubiKey Manager confirmed imported RSA-2048, PIN/touch `ALWAYS`, full
+PIN/PUK retry counters and PIN-protected AES-256 management keys on each device.
+The installed Yubico Authenticator backend still enumerated both keys.
+
+## Firmware validation
 
 On 2026-11-07 both keys were flashed with readback verification. Windows reports
 USB build `09DB` and the distinct chip IDs above. The installed Yubico
